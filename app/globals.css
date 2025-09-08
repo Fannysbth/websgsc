@@ -1,26 +1,30 @@
 @import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+
+
+/* --- Custom Style Tambahan --- */
+
+/* Background khusus bg-yellow-25 (karena Tailwind default mulai dari 50) */
+.bg-yellow-25 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(255 253 245 / var(--tw-bg-opacity)); /* warna kuning sangat muda */
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* Hover effect sidebar */
+.sidebar-link {
+  @apply px-6 py-3 text-yellow-200 hover:bg-yellow-700 cursor-pointer transition-colors;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Active state sidebar */
+.sidebar-link-active {
+  @apply px-6 py-3 bg-yellow-900 border-r-4 border-yellow-400 font-medium text-yellow-100;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Tabel zebra striping alternatif (kalau butuh warna lain) */
+.bg-yellow-25:nth-child(even) {
+  --tw-bg-opacity: 1;
+  background-color: rgb(255 253 245 / var(--tw-bg-opacity));
 }
