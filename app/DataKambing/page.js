@@ -73,7 +73,7 @@ useEffect(() => {
     const menuItems = [
       { name: 'Dashboard', href: '/Dashboardcoba' },
       { name: 'Data Kambing', href: '/DataKambing' },
-      { name: 'Data THI', href: '/data-thi' },
+      { name: 'Data THI', href: '/DataTHI' },
       { name: 'Data Suara', href: '/data-suara' },
       { name: 'Profile', href: '/profile' }
     ];
