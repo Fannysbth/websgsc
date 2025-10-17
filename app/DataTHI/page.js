@@ -10,7 +10,7 @@ const DataTHIPage = () => {
   const [activeMenu, setActiveMenu] = useState('Data THI');
   const [thiData, setThiData] = useState([]);
 
-  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3000';
+  const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
   // Fetch sensor table dari BE
   const fetchTHIData = async () => {

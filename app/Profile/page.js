@@ -16,14 +16,14 @@ export default function ProfilePage() {
     setLoading(true);
     try {
       const resUser = await axios.get(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3000"}/api/users/me`,
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/api/users/me`,
         { withCredentials: true }
       );
 
       let histories = [];
       try {
         const resHistories = await axios.get(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3000"}/api/histories`,
+          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/api/histories`,
           { withCredentials: true }
         );
         histories = resHistories?.data?.histories || [];
@@ -53,7 +53,7 @@ export default function ProfilePage() {
   const handleLogout = async () => {
     try {
       await axios.post(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3000"}/auth/logout`,
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/auth/logout`,
         {},
         { withCredentials: true }
       );
@@ -73,7 +73,7 @@ export default function ProfilePage() {
   const handleSave = async () => {
     try {
       const res = await axios.put(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3000"}/user/profile/edit`,
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/user/profile/edit`,
         formData,
         { withCredentials: true }
       );

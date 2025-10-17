@@ -10,7 +10,7 @@ export default function EditProfilePage() {
 
   useEffect(() => {
     if (token) {
-      fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3000"}/auth/me`, {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/auth/me`, {
         headers: { Authorization: `Bearer ${token}` },
       })
         .then((res) => res.json())
@@ -24,7 +24,7 @@ export default function EditProfilePage() {
 
   const handleSave = async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3000"}/auth/update-profile`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/auth/update-profile`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -51,7 +51,7 @@ export default function EditProfilePage() {
     const form = new FormData();
     form.append("profilePic", file);
 
-    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3000"}/api/users/profile/upload`, {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL|| "http://localhost:3000"}/api/users/profile/upload`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
       body: form,
