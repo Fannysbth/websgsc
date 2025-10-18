@@ -15,6 +15,7 @@ import {
   Legend,
 } from 'chart.js';
 import Link from "next/link";
+import { useRouter } from 'next/navigation';
 import io from 'socket.io-client';
 
 ChartJS.register(
@@ -28,20 +29,57 @@ ChartJS.register(
   Legend
 );
 
-const socket = io(process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000");
+const socket = io(process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000", {
+  withCredentials: true
+});
 
 const DashboardCharts = () => {
+  const router = useRouter();
   const [activeMenu, setActiveMenu] = useState('Dashboard');
   const [sensorData, setSensorData] = useState([]);
   const [audioData, setAudioData] = useState([]);
   const [jetsonData, setJetsonData] = useState([]);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // Check authentication first
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/users/me`,
+          { credentials: 'include' }
+        );
+        
+        if (!res.ok) {
+          throw new Error('Not authenticated');
+        }
+        
+        const userData = await res.json();
+        setUser(userData.user);
+      } catch (err) {
+        console.error("Auth check failed:", err);
+        router.push('/login');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkAuth();
+  }, [router]);
 
   const fetchChartData = async () => {
     try {
       const [sensorRes, audioRes, jetsonRes] = await Promise.all([
-        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/chart/sensors`),
-        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/chart/audio`),
-        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/chart/jetson`),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/chart/sensors`, {
+          credentials: 'include' // TAMBAHKAN INI
+        }),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/chart/audio`, {
+          credentials: 'include' // TAMBAHKAN INI
+        }),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/chart/jetson`, {
+          credentials: 'include' // TAMBAHKAN INI
+        }),
       ]);
 
       const sensorJson = await sensorRes.json();
@@ -57,74 +95,57 @@ const DashboardCharts = () => {
   };
 
   useEffect(() => {
-    fetchChartData();
+    if (user) {
+      fetchChartData();
 
-    socket.on('sensors', (data) => setSensorData(prev => [...prev.slice(-49), data]));
-    socket.on('audio', (data) => setAudioData(prev => [...prev.slice(-49), data]));
-    socket.on('jetson', (data) => setJetsonData(prev => [...prev.slice(-49), data]));
+      socket.on('sensors', (data) => setSensorData(prev => [...prev.slice(-49), data]));
+      socket.on('audio', (data) => setAudioData(prev => [...prev.slice(-49), data]));
+      socket.on('jetson', (data) => setJetsonData(prev => [...prev.slice(-49), data]));
 
-    return () => {
-      socket.off('sensors');
-      socket.off('audio');
-      socket.off('jetson');
-    };
-  }, []);
+      return () => {
+        socket.off('sensors');
+        socket.off('audio');
+        socket.off('jetson');
+      };
+    }
+  }, [user]);
 
-  // --- Total kambing ---
+  if (loading) {
+    return <div className="min-h-screen bg-yellow-25 flex items-center justify-center">Loading...</div>;
+  }
+
+  if (!user) {
+    return null; // Will redirect from useEffect
+  }
+
+  // ... rest of your DashboardCharts component code remains the same
   const allGoats = [...new Set(jetsonData.map(d => d.data?.id || d.sensorId))].filter(Boolean);
   const totalGoats = allGoats.length;
-
-  // --- Hanya kambing sitting ---
-  const sittingGoats = [...new Set(jetsonData.filter(d => d.data?.current_posture === 'sitting').map(d => d.data?.id || d.sensorId))];
-
-  const sittingDurationPerGoat = sittingGoats.map(id => {
-    const records = jetsonData.filter(d => (d.data?.id || d.sensorId) === id);
-    let duration = 0;
-    for (let i = 1; i < records.length; i++) {
-      const prev = records[i - 1];
-      const curr = records[i];
-      const prevTime = new Date(prev.data?.timestamp || prev.createdAt).getTime();
-      const currTime = new Date(curr.data?.timestamp || curr.createdAt).getTime();
-      if (prev.data?.current_posture === 'sitting') {
-        duration += (currTime - prevTime) / 1000; // detik
-      }
-    }
-    // Jika cuma 1 record sitting
-    if (records.length === 1 && records[0].data?.current_posture === 'sitting') {
-      duration = 1;
-    }
-    return duration;
-  });
-
-
-
   const latestSensor = sensorData[sensorData.length - 1] || {};
   const latestAudio = audioData[audioData.length - 1] || {};
 
-  // --- Perbaikan StatusCard ---
-const StatusCard = ({ title, value, icon: Icon, status = 'normal', className }) => (
-  <div className={`bg-white rounded-lg shadow-sm border border-yellow-100 p-6 hover:shadow-md transition-shadow ${className}`}>
-    <div className="flex items-center justify-between">
-      <div>
-        <p className="text-sm font-medium text-yellow-800 mb-1">{title}</p>
-        <p className="text-2xl font-bold text-yellow-900">{value}</p>
-      </div>
-      {Icon && (
-        <div className={`p-3 rounded-full ${status === 'warning' ? 'bg-red-100' : 'bg-green-100'}`}>
-          <Icon className={`w-6 h-6 ${status === 'warning' ? 'text-red-600' : 'text-green-600'}`} />
+  const StatusCard = ({ title, value, icon: Icon, status = 'normal', className }) => (
+    <div className={`bg-white rounded-lg shadow-sm border border-yellow-100 p-6 hover:shadow-md transition-shadow ${className}`}>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-yellow-800 mb-1">{title}</p>
+          <p className="text-2xl font-bold text-yellow-900">{value}</p>
         </div>
-      )}
+        {Icon && (
+          <div className={`p-3 rounded-full ${status === 'warning' ? 'bg-red-100' : 'bg-green-100'}`}>
+            <Icon className={`w-6 h-6 ${status === 'warning' ? 'text-red-600' : 'text-green-600'}`} />
+          </div>
+        )}
+      </div>
+      <div className="mt-2">
+        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+          status === 'warning' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+        }`}>
+          {status === 'warning' ? 'Perlu Perhatian' : 'Normal'}
+        </span>
+      </div>
     </div>
-    <div className="mt-2">
-      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-        status === 'warning' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
-      }`}>
-        {status === 'warning' ? 'Perlu Perhatian' : 'Normal'}
-      </span>
-    </div>
-  </div>
-);
-
+  );
 
   const Sidebar = () => {
     const menuItems = [
@@ -167,11 +188,10 @@ const StatusCard = ({ title, value, icon: Icon, status = 'normal', className }) 
         <h2 className="text-3xl font-bold text-yellow-900 mb-6">Dashboard</h2>
 
         <div className="flex flex-wrap justify-center gap-6 mb-8">
-  <StatusCard className="w-80" title="Total Kambing" value={totalGoats} icon={Users} />
-  <StatusCard className="w-80" title="THI Terakhir" value={latestSensor.data?.thi ?? 0} icon={Thermometer} status={latestSensor.data?.thi > 75 ? 'warning' : 'normal'} />
-  <StatusCard className="w-80" title="Frekuensi Terakhir" value={latestAudio.data?.db_level ?? 0} icon={Volume2} status={latestAudio.data?.db_level > 70 ? 'warning' : 'normal'} />
-</div>
-
+          <StatusCard className="w-80" title="Total Kambing" value={totalGoats} icon={Users} />
+          <StatusCard className="w-80" title="THI Terakhir" value={latestSensor.data?.thi ?? 0} icon={Thermometer} status={latestSensor.data?.thi > 75 ? 'warning' : 'normal'} />
+          <StatusCard className="w-80" title="Frekuensi Terakhir" value={latestAudio.data?.db_level ?? 0} icon={Volume2} status={latestAudio.data?.db_level > 70 ? 'warning' : 'normal'} />
+        </div>
 
         <div className="grid grid-cols-1 gap-6">
           <div className="bg-white p-6 rounded-lg shadow-sm border border-yellow-100">
@@ -207,10 +227,6 @@ const StatusCard = ({ title, value, icon: Icon, status = 'normal', className }) 
               }}
             />
           </div>
-
-          
-
-
         </div>
       </div>
     </div>

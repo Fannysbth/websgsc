@@ -6,49 +6,38 @@ import Link from "next/link";
 
 export default function ProfilePage() {
   const [user, setUser] = useState(null);
-  const [histories, setHistories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [formData, setFormData] = useState({ username: "", phone: "" });
 
   useEffect(() => {
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const resUser = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/api/users/me`,
-        { withCredentials: true }
-      );
-
-      let histories = [];
+    const fetchUser = async () => {
+      setLoading(true);
       try {
-        const resHistories = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/api/histories`,
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/api/users/me`,
           { withCredentials: true }
         );
-        histories = resHistories?.data?.histories || [];
+        
+        setUser(res.data.user);
+        setFormData({
+          username: res.data.user.username || "",
+          phone: res.data.user.phone || "",
+        });
       } catch (err) {
-        console.warn("Histories fetch failed, using empty array.", err);
-        histories = [];
+        console.error("User not found. Please login again.", err);
+        setUser(null);
+        // Redirect ke login jika unauthorized
+        if (err.response?.status === 401) {
+          window.location.href = "/login";
+        }
+      } finally {
+        setLoading(false);
       }
+    };
 
-      setUser(resUser.data.user);
-      setFormData({
-        username: resUser.data.user.username || "",
-        phone: resUser.data.user.phone || "",
-      });
-      setHistories(histories);
-    } catch (err) {
-      console.error("User not found. Please login again.", err);
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  fetchData();
-}, []);
-
+    fetchUser();
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -73,14 +62,16 @@ export default function ProfilePage() {
   const handleSave = async () => {
     try {
       const res = await axios.put(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/user/profile/edit`,
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/api/users/profile/edit`, // PERBAIKAN PATH
         formData,
         { withCredentials: true }
       );
       setUser(res.data.user);
       setEditing(false);
+      alert("Profile updated successfully!");
     } catch (err) {
       console.error("Update failed:", err);
+      alert("Update failed: " + (err.response?.data?.message || err.message));
     }
   };
 
@@ -88,12 +79,12 @@ export default function ProfilePage() {
   if (!user) return <p className="p-8 text-red-600">User not found. Please login again.</p>;
 
   const menuItems = [
-  { name: 'Dashboard', href: '/DashboardCharts' },
-  { name: 'Data Kambing', href: '/DataKambing' },
-  { name: 'Data THI', href: '/DataTHI' },
-  { name: 'Data Suara', href: '/DataSuara' },
-  { name: 'Profile', href: '/Profile' }
-];
+    { name: 'Dashboard', href: '/DashboardCharts' },
+    { name: 'Data Kambing', href: '/DataKambing' },
+    { name: 'Data THI', href: '/DataTHI' },
+    { name: 'Data Suara', href: '/DataSuara' },
+    { name: 'Profile', href: '/Profile' }
+  ];
 
   return (
     <div className="flex min-h-screen bg-yellow-25">
@@ -104,16 +95,16 @@ export default function ProfilePage() {
           <p className="text-sm text-yellow-300 mt-1">Monitoring System</p>
         </div>
         <nav className="mt-4">
-  {menuItems.map((item) => (
-    <Link
-      key={item.name}
-      href={item.href}
-      className="block px-6 py-3 hover:bg-yellow-700"
-    >
-      {item.name}
-    </Link>
-  ))}
-</nav>
+          {menuItems.map((item) => (
+            <Link
+              key={item.name}
+              href={item.href}
+              className="block px-6 py-3 hover:bg-yellow-700"
+            >
+              {item.name}
+            </Link>
+          ))}
+        </nav>
       </div>
 
       {/* Main */}
@@ -170,24 +161,14 @@ export default function ProfilePage() {
               </div>
             ) : (
               <div>
-                <p>
-                  <strong>Username:</strong> {user.username}
-                </p>
-                <p>
-                  <strong>Email:</strong> {user.email}
-                </p>
-                <p>
-                  <strong>Phone:</strong> {user.phone || "-"}
-                </p>
-                <p>
-                  <strong>Location:</strong> {user.location || "-"}
-                </p>
+                <p><strong>Username:</strong> {user.username}</p>
+                <p><strong>Email:</strong> {user.email}</p>
+                <p><strong>Phone:</strong> {user.phone || "-"}</p>
+                <p><strong>Location:</strong> {user.location || "-"}</p>
               </div>
             )}
           </div>
         </div>
-
-        
       </div>
     </div>
   );

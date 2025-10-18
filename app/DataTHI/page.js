@@ -15,7 +15,7 @@ const DataTHIPage = () => {
   // Fetch sensor table dari BE
   const fetchTHIData = async () => {
   try {
-    const res = await axios.get(`${BACKEND_URL}/api/tables/sensors?limit=50`);
+    const res = await axios.get(`x${BACKEND_URL}/api/tables/sensors?limit=50`);
     if (!res.data.success) return;
 
     const sensors = Array.isArray(res.data.data) ? res.data.data : [];
