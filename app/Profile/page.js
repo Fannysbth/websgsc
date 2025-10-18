@@ -248,10 +248,11 @@ export default function ProfilePage() {
               </div>
             ) : (
               <div>
+                <p><strong>ID Device:</strong> {user.location || "-"}</p>
                 <p><strong>Username:</strong> {user.username}</p>
                 <p><strong>Email:</strong> {user.email}</p>
                 <p><strong>Phone:</strong> {user.phone || "-"}</p>
-                <p><strong>Location:</strong> {user.location || "-"}</p>
+                
               </div>
             )}
           </div>
