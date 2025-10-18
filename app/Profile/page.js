@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react"; // ✅ TAMBAHKAN useRef
 import axios from "axios";
 import Link from "next/link";
 import Image from "next/image"; 
@@ -9,7 +9,15 @@ export default function ProfilePage() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
-  const [formData, setFormData] = useState({ username: "", phone: "" });
+  const [uploading, setUploading] = useState(false); // ✅ TAMBAHKAN uploading state
+  const [formData, setFormData] = useState({ 
+    username: "", 
+    phone: "", 
+    location: "" // ✅ TAMBAHKAN location
+  });
+
+  // ✅ TAMBAHKAN fileInputRef
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -24,11 +32,11 @@ export default function ProfilePage() {
         setFormData({
           username: res.data.user.username || "",
           phone: res.data.user.phone || "",
+          location: res.data.user.location || "", // ✅ TAMBAHKAN location
         });
       } catch (err) {
         console.error("User not found. Please login again.", err);
         setUser(null);
-        // Redirect ke login jika unauthorized
         if (err.response?.status === 401) {
           window.location.href = "/login";
         }
@@ -39,6 +47,52 @@ export default function ProfilePage() {
 
     fetchUser();
   }, []);
+
+  // ✅ TAMBAHKAN FUNGSI handleFileUpload
+  const handleFileUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size must be less than 5MB');
+      return;
+    }
+
+    setUploading(true);
+    const uploadFormData = new FormData();
+    uploadFormData.append('profilePic', file);
+
+    try {
+      const res = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/api/users/profile/upload`,
+        uploadFormData,
+        {
+          withCredentials: true,
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+
+      if (res.data.success) {
+        setUser(res.data.user);
+        alert('Profile picture updated successfully!');
+      }
+    } catch (err) {
+      console.error('Upload failed:', err);
+      alert('Upload failed: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -63,7 +117,7 @@ export default function ProfilePage() {
   const handleSave = async () => {
     try {
       const res = await axios.put(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/api/users/profile/edit`, // PERBAIKAN PATH
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/api/users/profile/edit`,
         formData,
         { withCredentials: true }
       );
@@ -129,7 +183,7 @@ export default function ProfilePage() {
         </div>
 
         <div className="flex gap-8 mb-10">
-          {/* Profile Picture Section - GUNAKAN Image BUKAN img */}
+          {/* Profile Picture Section */}
           <div className="flex flex-col items-center gap-4">
             <Image
               src={user.profilePic || "/default.png"}
