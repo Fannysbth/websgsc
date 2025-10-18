@@ -1,20 +1,15 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react"; // Tambahkan useRef
+import { useState, useEffect } from "react";
 import axios from "axios";
 import Link from "next/link";
+import Image from "next/image"; 
 
 export default function ProfilePage() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [formData, setFormData] = useState({ 
-    username: "", 
-    phone: "", 
-    location: "" 
-  });
-  const fileInputRef = useRef(null);
+  const [formData, setFormData] = useState({ username: "", phone: "" });
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -29,11 +24,11 @@ export default function ProfilePage() {
         setFormData({
           username: res.data.user.username || "",
           phone: res.data.user.phone || "",
-          location: res.data.user.location || "",
         });
       } catch (err) {
         console.error("User not found. Please login again.", err);
         setUser(null);
+        // Redirect ke login jika unauthorized
         if (err.response?.status === 401) {
           window.location.href = "/login";
         }
@@ -45,81 +40,72 @@ export default function ProfilePage() {
     fetchUser();
   }, []);
 
-  // Fungsi untuk upload foto
-  const handleFileUpload = async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    // Validasi file
-    if (!file.type.startsWith('image/')) {
-      alert('Please select an image file');
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      alert('File size must be less than 5MB');
-      return;
-    }
-
-    setUploading(true);
-    const formData = new FormData();
-    formData.append('profilePic', file);
-
+  const handleLogout = async () => {
     try {
-      const res = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/api/users/profile/upload`,
-        formData,
-        {
-          withCredentials: true,
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        }
+      await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/auth/logout`,
+        {},
+        { withCredentials: true }
       );
-
-      if (res.data.success) {
-        setUser(res.data.user);
-        alert('Profile picture updated successfully!');
-      }
     } catch (err) {
-      console.error('Upload failed:', err);
-      alert('Upload failed: ' + (err.response?.data?.message || err.message));
+      console.error("Logout failed:", err);
     } finally {
-      setUploading(false);
-      // Reset file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+      window.location.href = "/login";
     }
   };
 
-  // Fungsi untuk edit profile (tetap sama)
+  const handleEditToggle = () => setEditing(!editing);
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
   const handleSave = async () => {
     try {
       const res = await axios.put(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/api/users/profile/edit`,
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/api/users/profile/edit`, // PERBAIKAN PATH
         formData,
         { withCredentials: true }
       );
-      
-      if (res.data.success) {
-        setUser(res.data.user);
-        setEditing(false);
-        alert("Profile updated successfully!");
-      }
+      setUser(res.data.user);
+      setEditing(false);
+      alert("Profile updated successfully!");
     } catch (err) {
       console.error("Update failed:", err);
       alert("Update failed: " + (err.response?.data?.message || err.message));
     }
   };
 
-  // ... kode lainnya tetap sama
+  if (loading) return <p className="p-8">Loading...</p>;
+  if (!user) return <p className="p-8 text-red-600">User not found. Please login again.</p>;
+
+  const menuItems = [
+    { name: 'Dashboard', href: '/Dashboardcoba' },
+    { name: 'Data Kambing', href: '/DataKambing' },
+    { name: 'Data THI', href: '/DataTHI' },
+    { name: 'Data Suara', href: '/DataSuara' },
+    { name: 'Profile', href: '/Profile' }
+  ];
 
   return (
     <div className="flex min-h-screen bg-yellow-25">
       {/* Sidebar */}
       <div className="fixed left-0 top-0 h-full w-64 bg-[#004b00] text-white shadow-lg">
-        {/* ... sidebar code sama ... */}
+        <div className="p-6 border-b border-yellow-700">
+          <h1 className="text-2xl font-bold text-yellow-100">SCSC</h1>
+          <p className="text-sm text-yellow-300 mt-1">Monitoring System</p>
+        </div>
+        <nav className="mt-4">
+          {menuItems.map((item) => (
+            <Link
+              key={item.name}
+              href={item.href}
+              className="block px-6 py-3 hover:bg-yellow-700"
+            >
+              {item.name}
+            </Link>
+          ))}
+        </nav>
       </div>
 
       {/* Main */}
@@ -143,11 +129,13 @@ export default function ProfilePage() {
         </div>
 
         <div className="flex gap-8 mb-10">
-          {/* Profile Picture Section */}
+          {/* Profile Picture Section - GUNAKAN Image BUKAN img */}
           <div className="flex flex-col items-center gap-4">
-            <img
+            <Image
               src={user.profilePic || "/default.png"}
               alt="Profile"
+              width={128}
+              height={128}
               className="w-32 h-32 rounded-full object-cover shadow-md"
             />
             <div className="text-center">
